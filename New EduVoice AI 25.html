@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>EduVoice AI</title>
+  
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+
+  <style>
+    :root {
+      --bg-main: #0f0f11;
+      --bg-sidebar: #18181c;
+      --card-bg: #1e1e22;
+      --text-main: #e3e3e3;
+      --text-muted: #9e9e9e;
+      --accent: #6366f1;
+      --border-color: #2e2e34;
+      --modal-overlay: rgba(0, 0, 0, 0.6);
+    }
+
+    body.light-theme {
+      --bg-main: #f9f9fb;
+      --bg-sidebar: #f0f4f9;
+      --card-bg: #ffffff;
+      --text-main: #1f1f1f;
+      --text-muted: #5e5e5e;
+      --accent: #4f46e5;
+      --border-color: #e3e3e8;
+      --modal-overlay: rgba(0, 0, 0, 0.3);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      height: 100vh;
+      overflow: hidden;
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    .app-container {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      background-color: var(--bg-sidebar);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      padding: 1rem;
+      z-index: 10;
+    }
+
+    .sidebar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .btn-primary-outline {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.2s ease;
+      width: 100%;
+    }
+
+    .btn-primary-outline:hover {
+      background-color: var(--card-bg);
+    }
+
+    .streak-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      padding: 0.75rem 1rem;
+      border-radius: 12px;
+      font-weight: 600;
+      margin-bottom: 0.75rem;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .history-list {
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+
+    .history-list h3 {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.75rem;
+    }
+
+    .history-list ul {
+      list-style: none;
+    }
+
+    .history-list li {
+      padding: 0.6rem 0.75rem;
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 0.25rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: all 0.2s ease;
+    }
+
+    .history-list li.active, 
+    .history-list li:hover {
+      background-color: var(--card-bg);
+      color: var(--text-main);
+    }
+
+    .sidebar-footer {
+      border-top: 1px solid var(--border-color);
+      padding-top: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .user-profile-btn {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem;
+      border-radius: 10px;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      width: 100%;
+      text-align: left;
+    }
+
+    .user-profile-btn:hover {
+      background-color: var(--card-bg);
+    }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 0.9rem;
+      background-size: cover;
+      background-position: center;
+    }
+
+    .user-info {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .user-name {
+      font-size: 0.85rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .user-status {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .user-status.pro-active {
+      color: #10b981;
+      font-weight: 600;
+    }
+
+    .flat-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      width: 100%;
+      padding: 0.5rem;
+      border-radius: 6px;
+    }
+
+    .flat-btn:hover {
+      color: var(--text-main);
+      background: var(--card-bg);
+    }
+
+    /* Main Viewport */
+    .chat-viewport {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      height: 100%;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+      background-color: var(--bg-main);
+      gap: 1rem;
+    }
+
+    .top-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .top-bar h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    /* Pomodoro Timer Bar */
+    .timer-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      padding: 0.35rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .timer-btn {
+      background: transparent;
+      border: none;
+      color: var(--accent);
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: bold;
+      margin-left: 0.2rem;
+    }
+
+    .controls-group {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    .select-input {
+      background: var(--card-bg);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 0.4rem 0.8rem;
+      border-radius: 8px;
+      outline: none;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+
+    .messages-container {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding: 2rem 1rem 10rem 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    .message {
+      width: 100%;
+      max-width: 768px;
+      display: flex;
+      gap: 1rem;
+      padding: 1rem;
+      border-radius: 12px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .message.user {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
+    }
+
+    .avatar {
+      font-size: 1.2rem;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--border-color);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .message-content {
+      flex-grow: 1;
+      line-height: 1.6;
+      font-size: 0.95rem;
+      overflow-x: auto;
+    }
+
+    .message-content p { margin-bottom: 0.5rem; }
+    .message-content ul, .message-content ol { margin-left: 1.2rem; margin-bottom: 0.5rem; }
+    .message-content pre { border-radius: 8px; margin: 0.5rem 0; }
+
+    .message-actions {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 0.75rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .action-btn {
+      cursor: pointer;
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.8rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .action-btn:hover { color: var(--text-main); }
+
+    /* Input Dock & File Preview */
+    .input-wrapper {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+      background: linear-gradient(180deg, rgba(0,0,0,0) 0%, var(--bg-main) 60%);
+    }
+
+    .file-preview-tag {
+      background: var(--card-bg);
+      border: 1px solid var(--accent);
+      color: var(--text-main);
+      padding: 0.3rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.4rem;
+      max-width: 768px;
+      width: 100%;
+    }
+
+    .file-preview-tag span.close-tag {
+      cursor: pointer;
+      color: var(--text-muted);
+      font-weight: bold;
+    }
+
+    .tools-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-bottom: 0.6rem;
+      max-width: 768px;
+      width: 100%;
+    }
+
+    .tool-btn {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.3rem 0.8rem;
+      border-radius: 16px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tool-btn:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .preset-chip {
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+    }
+
+    .input-dock {
+      width: 100%;
+      max-width: 768px;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 28px;
+      display: flex;
+      align-items: center;
+      padding: 0.4rem 0.75rem;
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      gap: 0.25rem;
+    }
+
+    .input-dock:focus-within { border-color: var(--accent); }
+
+    textarea {
+      flex-grow: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      resize: none;
+      outline: none;
+      padding: 0.5rem;
+      font-size: 0.95rem;
+      max-height: 120px;
+    }
+
+    .icon-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      padding: 0.5rem;
+      cursor: pointer;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s, background-color 0.2s;
+    }
+
+    .icon-btn:hover {
+      color: var(--text-main);
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .icon-btn.recording {
+      color: #ef4444;
+      animation: pulse 1s infinite alternate;
+    }
+
+    @keyframes pulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.2); }
+    }
+
+    .icon-btn.active-send { color: var(--accent); }
+
+    /* Toast Notification System */
+    #toast-container {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 1000;
+    }
+
+    .toast {
+      background: var(--card-bg);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 0.75rem 1.25rem;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      animation: toastIn 0.3s ease, toastOut 0.3s ease 2.7s forwards;
+    }
+
+    @keyframes toastIn { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    @keyframes toastOut { from { transform: translateY(0); opacity: 1; } to { transform: translateY(100%); opacity: 0; } }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: var(--modal-overlay);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+    .modal-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      width: 100%;
+      max-width: 480px;
+      border-radius: 16px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .modal-header { display: flex; justify-content: space-between; align-items: center; }
+
+    .setting-row { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
+
+    .setting-input {
+      background: var(--bg-main);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      padding: 0.4rem 0.6rem;
+      border-radius: 8px;
+      outline: none;
+      font-size: 0.85rem;
+      width: 55%;
+    }
+
+    .btn-submit {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 0.6rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.6rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-main);
+    }
+
+    .google-btn-wrapper { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; margin: 0.5rem 0; }
+
+    /* Flashcard UI */
+    .flashcard-container { perspective: 1000px; width: 100%; height: 200px; cursor: pointer; }
+    .flashcard { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; transition: transform 0.6s ease; border-radius: 12px; }
+    .flashcard.flipped { transform: rotateY(180deg); }
+    .flashcard-front, .flashcard-back {
+      position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
+      display: flex; align-items: center; justify-content: center; padding: 1.5rem; text-align: center;
+      border-radius: 12px; border: 1px solid var(--border-color); background: var(--bg-main); font-size: 1.05rem;
+    }
+    .flashcard-back { transform: rotateY(180deg); background: var(--card-bg); color: var(--accent); font-weight: 500; }
+    .flashcard-controls { display: flex; justify-content: space-between; align-items: center; }
+
+    /* Practice Quiz Mode UI */
+    .quiz-question { font-weight: 600; font-size: 1rem; margin-bottom: 0.75rem; }
+    .quiz-options { display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 1rem; }
+    .quiz-option-btn {
+      background: var(--bg-main);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
+      text-align: left;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s ease;
+    }
+    .quiz-option-btn:hover { border-color: var(--accent); }
+    .quiz-option-btn.correct { background: rgba(34, 197, 94, 0.2); border-color: #22c55e; color: #22c55e; }
+    .quiz-option-btn.incorrect { background: rgba(239, 68, 68, 0.2); border-color: #ef4444; color: #ef4444; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <button class="btn-primary-outline" onclick="createNewChat()">+ New Chat</button>
+      </div>
+
+      <div class="streak-card">
+        🔥 <span id="streak-counter">1</span> Day Study Streak
+      </div>
+
+      <div class="history-list">
+        <h3>Recent Chats</h3>
+        <ul id="chat-history-list"></ul>
+      </div>
+
+      <div class="sidebar-footer">
+        <button class="flat-btn" onclick="exportPDF()">📄 Export PDF Study Guide</button>
+        <button class="flat-btn" onclick="exportNotes()">📝 Export Markdown (.md)</button>
+        <button class="user-profile-btn" onclick="openModal('account-modal')">
+          <div class="user-avatar" id="avatar-initial">S</div>
+          <div class="user-info">
+            <span class="user-name" id="display-username">Student</span>
+            <span class="user-status" id="display-user-status">Free Plan</span>
+          </div>
+        </button>
+        <button class="flat-btn" onclick="openModal('settings-modal')">⚙️ Settings</button>
+      </div>
+    </aside>
+
+    <main class="chat-viewport">
+      <header class="top-bar">
+        <div class="top-bar-left">
+          <h2>EduVoice AI</h2>
+          <div class="timer-badge">
+            ⏱️ <span id="timer-display">25:00</span>
+            <button class="timer-btn" id="timer-toggle-btn" onclick="toggleTimer()">Start</button>
+            <button class="timer-btn" onclick="resetTimer()" style="color:var(--text-muted);">↺</button>
+          </div>
+        </div>
+
+        <div class="controls-group">
+          <select id="personality-select" class="select-input" title="AI Personality Tone">
+            <option value="encouraging">Tone: Encouraging Tutor</option>
+            <option value="socratic">Tone: Socratic Questioner</option>
+            <option value="strict">Tone: Strict Exam Coach</option>
+            <option value="eli5">Tone: Simple (ELI5)</option>
+          </select>
+
+          <select id="grade-level" class="select-input">
+            <option value="High School">High School (9th-12th)</option>
+            <option value="Middle School">Middle School (6th-8th)</option>
+            <option value="College">College / University</option>
+          </select>
+
+          <select id="subject-select" class="select-input" onchange="updateSubjectPresets()">
+            <option value="General Science">Science</option>
+            <option value="Mathematics">Math</option>
+            <option value="History">History</option>
+            <option value="Literature">Literature</option>
+          </select>
+        </div>
+      </header>
+
+      <section class="messages-container" id="messages-container"></section>
+
+      <footer class="input-wrapper">
+        <div id="file-preview-area"></div>
+
+        <div class="tools-bar" id="tools-presets-bar">
+          <button class="tool-btn" onclick="triggerFlashcards()">📇 Flashcards</button>
+          <button class="tool-btn" onclick="startPracticeQuiz()">📝 Practice Quiz</button>
+          <button class="tool-btn" onclick="triggerTool('tldr')">⚡ TL;DR</button>
+        </div>
+
+        <div class="input-dock">
+          <label for="file-input" class="icon-btn" title="Upload Document or PDF">
+            ➕
+            <input type="file" id="file-input" accept=".pdf,.txt,.md,.doc,.docx" hidden onchange="handleFileUpload(event)" />
+          </label>
+
+          <textarea id="user-input" placeholder="Ask EduVoice anything or attach a PDF..." rows="1"></textarea>
+
+          <button class="icon-btn" id="mic-btn" onclick="toggleVoiceInput()" title="Voice Input">🎙️</button>
+          <button class="icon-btn active-send" id="send-btn" onclick="sendMessage()" title="Send Message">➔</button>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <div class="modal-overlay" id="quiz-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>📝 Practice Quiz Mode</h3>
+        <button class="action-btn" onclick="closeModal('quiz-modal')">✕</button>
+      </div>
+      <div id="quiz-body">
+        <div class="quiz-question" id="quiz-q-text">Loading question...</div>
+        <div class="quiz-options" id="quiz-options-container"></div>
+      </div>
+      <div class="flashcard-controls">
+        <span id="quiz-score-tracker" style="font-size:0.85rem; color:var(--text-muted)">Score: 0 / 0</span>
+        <button class="tool-btn" id="quiz-next-btn" onclick="nextQuizQuestion()" style="display:none;">Next Question ►</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="flashcard-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>📇 Interactive Flashcards</h3>
+        <button class="action-btn" onclick="closeModal('flashcard-modal')">✕</button>
+      </div>
+      <div class="flashcard-container" onclick="flipFlashcard()">
+        <div class="flashcard" id="active-flashcard">
+          <div class="flashcard-front" id="card-question">Click "Generate Flashcards" in chat to populate cards!</div>
+          <div class="flashcard-back" id="card-answer">Click card to flip back.</div>
+        </div>
+      </div>
+      <div class="flashcard-controls">
+        <button class="tool-btn" onclick="prevFlashcard()">◄ Prev</button>
+        <span id="card-indicator" style="font-size:0.85rem; color:var(--text-muted)">0 / 0</span>
+        <button class="tool-btn" onclick="nextFlashcard()">Next ►</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="settings-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Settings</h3>
+        <button class="action-btn" onclick="closeModal('settings-modal')">✕</button>
+      </div>
+      <div class="setting-row">
+        <span>Groq API Key</span>
+        <input type="password" id="groq-key-input" class="setting-input" placeholder="gsk_..." />
+      </div>
+      <div class="setting-row">
+        <span>Voice Gender</span>
+        <select class="setting-input" id="voice-gender">
+          <option value="female">Girl / Female</option>
+          <option value="male">Boy / Male</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <span>Voice Pitch</span>
+        <select class="setting-input" id="voice-pitch">
+          <option value="0.8">0.8 Deep</option>
+          <option value="1.0">1.0 Normal</option>
+          <option value="1.2">1.2 Higher Pitch</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <span>Voice Language</span>
+        <select class="setting-input" id="voice-lang">
+          <option value="en-US">English (US)</option>
+          <option value="en-GB">English (UK)</option>
+          <option value="es-ES">Spanish (Español)</option>
+          <option value="fr-FR">French (Français)</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <span>Speech Speed</span>
+        <select class="setting-input" id="tts-rate">
+          <option value="1.0">1.0x Normal</option>
+          <option value="1.25">1.25x Fast</option>
+          <option value="1.5">1.5x Rapid</option>
+        </select>
+      </div>
+      <div class="setting-row">
+        <span>Theme</span>
+        <select class="setting-input" id="theme-select" onchange="changeTheme(this.value)">
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+        </select>
+      </div>
+      <button class="btn-submit" onclick="saveSettings()">Save Settings</button>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="account-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Account Profile</h3>
+        <button class="action-btn" onclick="closeModal('account-modal')">✕</button>
+      </div>
+      <div class="google-btn-wrapper">
+        <div id="google-signin-btn"></div>
+        <button class="btn-secondary" id="switch-account-btn" style="width:100%; display:none;" onclick="switchAccount()">
+          🔄 Switch Google / Gmail Account
+        </button>
+      </div>
+      <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem;">— ACCOUNT STATUS & UPGRADE —</div>
+      <div class="setting-row">
+        <span>Subscription Plan</span>
+        <strong id="modal-pro-status">Free Plan</strong>
+      </div>
+      <button class="btn-submit" id="upgrade-pro-btn" onclick="completeProPurchase()">
+        ⭐ Upgrade / Restore Pro Membership
+      </button>
+
+      <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; margin-top: 0.5rem;">— MANUAL PROFILE —</div>
+      <div class="setting-row">
+        <span>Display Name</span>
+        <input type="text" id="username-input" class="setting-input" value="Student" />
+      </div>
+      <button class="btn-submit" onclick="saveProfile()">Save Manual Profile</button>
+    </div>
+  </div>
+
+  <script>
+    const GOOGLE_CLIENT_ID = "204533614007-8oispf7qhltqe9n6qqo8jfo99f8n2pg0.apps.googleusercontent.com";
+
+    let chats = {};
+    let activeChatId = null;
+    let activeSpeechBtn = null;
+    let recognition = null;
+    let isRecording = false;
+    let uploadedFileContext = "";
+    let uploadedFileName = "";
+
+    // Flashcard State
+    let flashcardsList = [];
+    let currentCardIndex = 0;
+
+    // Quiz State
+    let quizQuestions = [];
+    let currentQuizIndex = 0;
+    let quizScore = 0;
+
+    // Pomodoro Timer State
+    let timerSeconds = 25 * 60;
+    let timerInterval = null;
+    let isTimerRunning = false;
+
+    // Subject Presets
+    const presets = {
+      "General Science": ["🔬 Explain like I'm 5", "🧪 Real-world application"],
+      "Mathematics": ["📐 Solve step-by-step", "📊 Show formula breakdown"],
+      "History": ["📜 Timeline of events", "🏛️ Historical context"],
+      "Literature": ["📚 Character analysis", "✍️ Theme summary"]
+    };
+
+    window.onload = function () {
+      initGoogleSignIn();
+      initSpeechRecognition();
+      initSettings();
+      loadProfile();
+      loadSavedChats();
+      updateSubjectPresets();
+    };
+
+    function initGoogleSignIn() {
+      try {
+        if (typeof google !== 'undefined' && google.accounts) {
+          google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: handleGoogleCredentialResponse,
+            auto_select: false
+          });
+          google.accounts.id.renderButton(
+            document.getElementById("google-signin-btn"),
+            { theme: "outline", size: "medium", shape: "pill" }
+          );
+        }
+      } catch (e) { console.warn("Google Auth initialization skipped.", e); }
+    }
+
+    // --- Toast System ---
+    function showToast(message) {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = `🔔 <span>${message}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => { toast.remove(); }, 3000);
+    }
+
+    // --- Pomodoro Study Timer ---
+    function toggleTimer() {
+      const btn = document.getElementById('timer-toggle-btn');
+      if (isTimerRunning) {
+        clearInterval(timerInterval);
+        isTimerRunning = false;
+        btn.innerText = "Start";
+      } else {
+        isTimerRunning = true;
+        btn.innerText = "Pause";
+        timerInterval = setInterval(() => {
+          if (timerSeconds > 0) {
+            timerSeconds--;
+            updateTimerDisplay();
+          } else {
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            btn.innerText = "Start";
+            showToast("⏰ Study Session Finished! Take a 5-minute break.");
+          }
+        }, 1000);
+      }
+    }
+
+    function resetTimer() {
+      clearInterval(timerInterval);
+      isTimerRunning = false;
+      timerSeconds = 25 * 60;
+      updateTimerDisplay();
+      document.getElementById('timer-toggle-btn').innerText = "Start";
+    }
+
+    function updateTimerDisplay() {
+      const mins = Math.floor(timerSeconds / 60);
+      const secs = timerSeconds % 60;
+      document.getElementById('timer-display').innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // --- Document & PDF File Upload Extraction ---
+    async function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      uploadedFileName = file.name;
+
+      if (file.type === "application/pdf") {
+        showToast("Extracting PDF text...");
+        const reader = new FileReader();
+        reader.onload = async function () {
+          try {
+            const typedarray = new Uint8Array(this.result);
+            if (typeof pdfjsLib !== 'undefined') {
+              pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+              const pdf = await pdfjsLib.getDocument(typedarray).promise;
+              let text = "";
+              for (let i = 1; i <= Math.min(pdf.numPages, 10); i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                text += content.items.map(item => item.str).join(" ") + "\n";
+              }
+              uploadedFileContext = text;
+              renderFilePreviewTag();
+              showToast("PDF Text Extracted!");
+            } else {
+              showToast("PDF library loading error.");
+            }
+          } catch (e) {
+            showToast("Failed to read PDF.");
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      } else {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          uploadedFileContext = e.target.result;
+          renderFilePreviewTag();
+          showToast("Document Loaded!");
+        };
+        reader.readAsText(file);
+      }
+    }
+
+    function renderFilePreviewTag() {
+      const area = document.getElementById('file-preview-area');
+      area.innerHTML = `
+        <div class="file-preview-tag">
+          📄 Attached Context: <strong>${uploadedFileName}</strong>
+          <span class="close-tag" onclick="removeFileContext()">✕</span>
+        </div>
+      `;
+    }
+
+    function removeFileContext() {
+      uploadedFileContext = "";
+      uploadedFileName = "";
+      document.getElementById('file-preview-area').innerHTML = "";
+      document.getElementById('file-input').value = "";
+      showToast("File attachment removed.");
+    }
+
+    // --- Practice Quiz Mode ---
+    function startPracticeQuiz() {
+      openModal('quiz-modal');
+      quizQuestions = [
+        {
+          q: "What is the primary function of the cell's mitochondria?",
+          options: ["Protein synthesis", "Energy (ATP) production", "Cellular division", "DNA replication"],
+          correct: 1
+        },
+        {
+          q: "What formula represents Newton's Second Law of Motion?",
+          options: ["E = mc²", "F = ma", "a² + b² = c²", "V = IR"],
+          correct: 1
+        }
+      ];
+
+      currentQuizIndex = 0;
+      quizScore = 0;
+      renderQuizQuestion();
+    }
+
+    function renderQuizQuestion() {
+      if (currentQuizIndex >= quizQuestions.length) {
+        document.getElementById('quiz-q-text').innerText = `🎉 Quiz Completed! Final Score: ${quizScore} / ${quizQuestions.length}`;
+        document.getElementById('quiz-options-container').innerHTML = '';
+        document.getElementById('quiz-next-btn').style.display = 'none';
+        return;
+      }
+
+      const q = quizQuestions[currentQuizIndex];
+      document.getElementById('quiz-q-text').innerText = `${currentQuizIndex + 1}. ${q.q}`;
+      document.getElementById('quiz-score-tracker').innerText = `Score: ${quizScore} / ${quizQuestions.length}`;
+      document.getElementById('quiz-next-btn').style.display = 'none';
+
+      const optionsDiv = document.getElementById('quiz-options-container');
+      optionsDiv.innerHTML = '';
+
+      q.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'quiz-option-btn';
+        btn.innerText = opt;
+        btn.onclick = () => selectQuizAnswer(btn, idx, q.correct);
+        optionsDiv.appendChild(btn);
+      });
+    }
+
+    function selectQuizAnswer(selectedBtn, chosenIdx, correctIdx) {
+      const allBtns = document.querySelectorAll('.quiz-option-btn');
+      allBtns.forEach(b => b.disabled = true);
+
+      if (chosenIdx === correctIdx) {
+        selectedBtn.classList.add('correct');
+        quizScore++;
+        showToast("Correct Answer! 🎉");
+      } else {
+        selectedBtn.classList.add('incorrect');
+        allBtns[correctIdx].classList.add('correct');
+        showToast("Incorrect answer.");
+      }
+
+      document.getElementById('quiz-score-tracker').innerText = `Score: ${quizScore} / ${quizQuestions.length}`;
+      document.getElementById('quiz-next-btn').style.display = 'inline-block';
+    }
+
+    function nextQuizQuestion() {
+      currentQuizIndex++;
+      renderQuizQuestion();
+    }
+
+    // --- Subject Presets ---
+    function updateSubjectPresets() {
+      const subjectSelect = document.getElementById('subject-select');
+      if (!subjectSelect) return;
+      const subject = subjectSelect.value;
+      const bar = document.getElementById('tools-presets-bar');
+      document.querySelectorAll('.preset-chip').forEach(el => el.remove());
+
+      if (presets[subject]) {
+        presets[subject].forEach(text => {
+          const btn = document.createElement('button');
+          btn.className = 'tool-btn preset-chip';
+          btn.innerText = text;
+          btn.onclick = () => {
+            document.getElementById('user-input').value = text;
+            sendMessage();
+          };
+          bar.appendChild(btn);
+        });
+      }
+    }
+
+    // --- Export PDF ---
+    function exportPDF() {
+      const container = document.getElementById('messages-container');
+      showToast("Generating PDF Study Guide...");
+      
+      if (typeof html2pdf === 'undefined') {
+        showToast("PDF generator loading error.");
+        return;
+      }
+
+      const opt = {
+        margin:       0.5,
+        filename:     `${chats[activeChatId]?.title || 'study_guide'}.pdf`,
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2 },
+        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+      };
+
+      html2pdf().set(opt).from(container).save().then(() => {
+        showToast("PDF Downloaded successfully!");
+      }).catch(err => {
+        showToast("Failed to generate PDF.");
+      });
+    }
+
+    // --- Saved Chat History ---
+    function loadSavedChats() {
+      const storedChats = localStorage.getItem('eduvoice_chats');
+      if (storedChats) {
+        try { chats = JSON.parse(storedChats); } catch (e) { chats = {}; }
+      }
+
+      const keys = Object.keys(chats);
+      if (keys.length === 0) createNewChat("General Study");
+      else {
+        activeChatId = keys[0];
+        renderSidebarHistory();
+        renderActiveChatMessages();
+      }
+    }
+
+    function saveChatsToStorage() { localStorage.setItem('eduvoice_chats', JSON.stringify(chats)); }
+
+    function createNewChat(title) {
+      stopSpeech();
+      const id = 'chat-' + Date.now();
+      chats[id] = {
+        title: title || `Chat ${Object.keys(chats).length + 1}`,
+        messages: [{ role: 'assistant', content: "Hello! I'm EduVoice AI. How can I help you study today?" }]
+      };
+      activeChatId = id;
+      saveChatsToStorage();
+      renderSidebarHistory();
+      renderActiveChatMessages();
+    }
+
+    function switchChatSession(id) {
+      stopSpeech();
+      activeChatId = id;
+      renderSidebarHistory();
+      renderActiveChatMessages();
+    }
+
+    function renderSidebarHistory() {
+      const historyUl = document.getElementById('chat-history-list');
+      if (!historyUl) return;
+      historyUl.innerHTML = '';
+      Object.keys(chats).forEach(id => {
+        const li = document.createElement('li');
+        if (id === activeChatId) li.className = 'active';
+        li.innerText = chats[id].title;
+        li.onclick = () => switchChatSession(id);
+        historyUl.appendChild(li);
+      });
+    }
+
+    function renderActiveChatMessages() {
+      const container = document.getElementById('messages-container');
+      if (!container) return;
+      container.innerHTML = '';
+      if (!activeChatId || !chats[activeChatId]) return;
+      chats[activeChatId].messages.forEach(msg => appendMessageUI(msg.role, msg.content));
+    }
+
+    // --- Markdown & LaTeX Parsing Safe Wrapper ---
+    function formatText(rawText) {
+      let parsedHTML = rawText;
+      if (typeof marked !== 'undefined') {
+        parsedHTML = marked.parse(rawText);
+      }
+
+      if (typeof katex !== 'undefined') {
+        parsedHTML = parsedHTML.replace(/\$\$(.*?)\$\$/g, (match, math) => {
+          try { return katex.renderToString(math, { displayMode: true, throwOnError: false }); } catch(e) { return match; }
+        });
+        parsedHTML = parsedHTML.replace(/\$(.*?)\$/g, (match, math) => {
+          try { return katex.renderToString(math, { displayMode: false, throwOnError: false }); } catch(e) { return match; }
+        });
+      }
+
+      return parsedHTML;
+    }
+
+    // --- Groq AI API ---
+    async function fetchGroqResponse(userPrompt) {
+      const apiKey = localStorage.getItem('groq_api_key') || document.getElementById('groq-key-input').value;
+      if (!apiKey) {
+        openModal('settings-modal');
+        showToast("Groq API Key Required!");
+        return "⚠️ Please enter a valid Groq API Key (gsk_...) in Settings to start chatting.";
+      }
+
+      const grade = document.getElementById('grade-level').value;
+      const subject = document.getElementById('subject-select').value;
+      const personality = document.getElementById('personality-select').value;
+      const lang = localStorage.getItem('eduvoice_lang') || 'en-US';
+
+      let promptPayload = userPrompt;
+      if (uploadedFileContext) {
+        promptPayload = `[ATTACHED DOCUMENT CONTEXT (${uploadedFileName})]:\n${uploadedFileContext}\n\n[USER QUESTION]: ${userPrompt}`;
+      }
+
+      const history = chats[activeChatId].messages;
+      history.push({ role: "user", content: promptPayload });
+
+      const systemPrompt = {
+        role: "system",
+        content: `You are EduVoice AI, an expert tutor for a ${grade} student studying ${subject}. Adopt a ${personality} personality tone. Format equations using LaTeX ($formula$). Respond in [${lang}].`
+      };
+
+      try {
+        const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ model: "llama-3.3-70b-versatile", messages: [systemPrompt, ...history], temperature: 0.7 })
+        });
+
+        if (!response.ok) return `❌ API Error: ${response.statusText}. Please check your API key.`;
+        const data = await response.json();
+        const aiReply = data.choices[0].message.content;
+        history.push({ role: "assistant", content: aiReply });
+        saveChatsToStorage();
+        return aiReply;
+      } catch (err) { return `❌ Connection Error: ${err.message}`; }
+    }
+
+    async function sendMessage() {
+      stopSpeech();
+      const input = document.getElementById('user-input');
+      const query = input.value.trim();
+      if (!query && !uploadedFileContext) return;
+
+      if (chats[activeChatId].messages.length <= 1) {
+        chats[activeChatId].title = (query || uploadedFileName).slice(0, 20) + '...';
+        renderSidebarHistory();
+      }
+
+      appendMessageUI('user', query || `Uploaded context from ${uploadedFileName}`);
+      input.value = '';
+
+      const loadingId = appendMessageUI('assistant', 'Thinking...');
+      const aiResponse = await fetchGroqResponse(query || "Summarize the attached document.");
+      
+      const msgElem = document.getElementById(loadingId);
+      if (msgElem) {
+        msgElem.querySelector('.message-content-inner').innerHTML = formatText(aiResponse);
+        if (typeof Prism !== 'undefined') Prism.highlightAll();
+      }
+    }
+
+    function appendMessageUI(sender, text) {
+      const container = document.getElementById('messages-container');
+      if (!container) return;
+      const msgDiv = document.createElement('div');
+      const msgId = 'msg-' + Date.now();
+      msgDiv.id = msgId;
+      msgDiv.className = `message ${sender}`;
+      
+      const avatarIcon = sender === 'user' ? '👤' : '🤖';
+      const formattedHTML = formatText(text);
+
+      msgDiv.innerHTML = `
+        <div class="avatar">${avatarIcon}</div>
+        <div class="message-content">
+          <div class="message-content-inner">${formattedHTML}</div>
+          ${sender === 'assistant' ? `
+            <div class="message-actions">
+              <button class="action-btn" onclick="toggleSpeech(this)">🔊 Read Aloud</button>
+              <button class="action-btn" onclick="copyMessageText(this)">📋 Copy</button>
+            </div>` : ''}
+        </div>
+      `;
+      
+      container.appendChild(msgDiv);
+      container.scrollTop = container.scrollHeight;
+      if (typeof Prism !== 'undefined') Prism.highlightAll();
+      return msgId;
+    }
+
+    // --- Voice Input ---
+    function initSpeechRecognition() {
+      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.onresult = (event) => {
+          document.getElementById('user-input').value = event.results[0][0].transcript;
+        };
+        recognition.onend = () => {
+          isRecording = false;
+          const micBtn = document.getElementById('mic-btn');
+          if (micBtn) micBtn.classList.remove('recording');
+        };
+      }
+    }
+
+    function toggleVoiceInput() {
+      if (!recognition) return showToast("Speech Recognition not supported in browser.");
+      if (isRecording) { 
+        recognition.stop(); 
+      } else { 
+        recognition.start(); 
+        isRecording = true; 
+        const micBtn = document.getElementById('mic-btn');
+        if (micBtn) micBtn.classList.add('recording'); 
+      }
+    }
+
+    // --- Flashcards ---
+    function triggerFlashcards() {
+      openModal('flashcard-modal');
+      const messages = chats[activeChatId]?.messages || [];
+      const assistantMsgs = messages.filter(m => m.role === 'assistant');
+      if (assistantMsgs.length > 0) parseFlashcardsFromText(assistantMsgs[assistantMsgs.length - 1].content);
+      else {
+        flashcardsList = [{ q: "Welcome to EduVoice AI!", a: "Start asking questions or chatting to generate interactive flashcards!" }];
+        currentCardIndex = 0;
+        updateFlashcardUI();
+      }
+    }
+
+    function parseFlashcardsFromText(text) {
+      flashcardsList = [];
+      const sentences = text.split('. ');
+      for (let i = 0; i < sentences.length - 1; i += 2) {
+        if (sentences[i].trim()) flashcardsList.push({ q: sentences[i].trim() + '?', a: sentences[i+1] ? sentences[i+1].trim() : "Review lesson summary." });
+      }
+      if (flashcardsList.length === 0) flashcardsList = [{ q: "What is the key takeaway?", a: text.slice(0, 150) + "..." }];
+      currentCardIndex = 0;
+      updateFlashcardUI();
+    }
+
+    function updateFlashcardUI() {
+      const activeCard = document.getElementById('active-flashcard');
+      if (activeCard) activeCard.classList.remove('flipped');
+      document.getElementById('card-question').innerText = flashcardsList[currentCardIndex].q;
+      document.getElementById('card-answer').innerText = flashcardsList[currentCardIndex].a;
+      document.getElementById('card-indicator').innerText = `${currentCardIndex + 1} / ${flashcardsList.length}`;
+    }
+
+    function flipFlashcard() { 
+      const activeCard = document.getElementById('active-flashcard');
+      if (activeCard) activeCard.classList.toggle('flipped'); 
+    }
+    function nextFlashcard() { if (currentCardIndex < flashcardsList.length - 1) { currentCardIndex++; updateFlashcardUI(); } }
+    function prevFlashcard() { if (currentCardIndex > 0) { currentCardIndex--; updateFlashcardUI(); } }
+
+    // --- Pro Subscription & Account Management ---
+    function completeProPurchase() {
+      const isProNow = localStorage.getItem('eduvoice_is_pro') === 'true';
+      if (!isProNow) {
+        localStorage.setItem('eduvoice_is_pro', 'true');
+        showToast("🎉 Pro Purchase Successful! Pro features unlocked.");
+      } else {
+        showToast("Pro subscription is already active for this account.");
+      }
+      loadProfile();
+      closeModal('account-modal');
+    }
+
+    function switchAccount() {
+      if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+        google.accounts.id.disableAutoSelect();
+      }
+      localStorage.removeItem('eduvoice_username');
+      localStorage.removeItem('eduvoice_user_picture');
+      localStorage.removeItem('eduvoice_user_email');
+      localStorage.removeItem('eduvoice_is_pro');
+      
+      loadProfile();
+      showToast("Signed out. Select or log into another Gmail account.");
+      
+      initGoogleSignIn();
+    }
+
+    function handleGoogleCredentialResponse(response) {
+      const user = parseJwt(response.credential);
+      if (user) {
+        localStorage.setItem('eduvoice_username', user.name || user.email);
+        if (user.picture) localStorage.setItem('eduvoice_user_picture', user.picture);
+        if (user.email) localStorage.setItem('eduvoice_user_email', user.email);
+        
+        loadProfile();
+        closeModal('account-modal');
+        showToast(`Signed in as ${user.name || user.email}`);
+      }
+    }
+
+    function parseJwt(token) {
+      try {
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        return JSON.parse(decodeURIComponent(atob(base64).split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')));
+      } catch (e) { return null; }
+    }
+
+    function loadProfile() {
+      const name = localStorage.getItem('eduvoice_username') || 'Student';
+      const picture = localStorage.getItem('eduvoice_user_picture');
+      const isPro = localStorage.getItem('eduvoice_is_pro') === 'true';
+
+      document.getElementById('display-username').innerText = name;
+      document.getElementById('username-input').value = name;
+
+      const avatarElem = document.getElementById('avatar-initial');
+      if (picture) {
+        avatarElem.style.backgroundImage = `url('${picture}')`;
+        avatarElem.innerText = '';
+      } else {
+        avatarElem.style.backgroundImage = 'none';
+        avatarElem.innerText = name.charAt(0).toUpperCase();
+      }
+
+      // Update Pro Status
+      const statusTag = document.getElementById('display-user-status');
+      const modalStatus = document.getElementById('modal-pro-status');
+      const upgradeBtn = document.getElementById('upgrade-pro-btn');
+      const switchBtn = document.getElementById('switch-account-btn');
+
+      if (isPro) {
+        statusTag.innerText = "EduVoice Pro";
+        statusTag.classList.add("pro-active");
+        modalStatus.innerText = "EduVoice Pro (Active)";
+        modalStatus.style.color = "#10b981";
+        if (upgradeBtn) upgradeBtn.innerText = "✓ Pro Plan Active";
+      } else {
+        statusTag.innerText = "Free Plan";
+        statusTag.classList.remove("pro-active");
+        modalStatus.innerText = "Free Plan";
+        modalStatus.style.color = "var(--text-muted)";
+        if (upgradeBtn) upgradeBtn.innerText = "⭐ Upgrade / Restore Pro Membership";
+      }
+
+      // Toggle Switch Account option
+      const userEmail = localStorage.getItem('eduvoice_user_email');
+      if (userEmail && switchBtn) {
+        switchBtn.style.display = 'block';
+      } else if (switchBtn) {
+        switchBtn.style.display = 'none';
+      }
+    }
+
+    // --- Helpers ---
+    function exportNotes() {
+      const chat = chats[activeChatId];
+      if (!chat) return;
+      let content = `# Notes: ${chat.title}\n\n`;
+      chat.messages.forEach(m => { content += `### ${m.role}:\n${m.content}\n\n---\n\n`; });
+      const blob = new Blob([content], { type: 'text/markdown' });
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(blob);
+      link.download = `${chat.title}_notes.md`;
+      link.click();
+      showToast("Markdown Notes Downloaded!");
+    }
+
+    function toggleSpeech(btn) {
+      const text = btn.closest('.message-content').querySelector('.message-content-inner').innerText;
+      if (window.speechSynthesis.speaking && activeSpeechBtn === btn) {
+        if (window.speechSynthesis.paused) { window.speechSynthesis.resume(); btn.innerText = "⏸️ Pause"; }
+        else { window.speechSynthesis.pause(); btn.innerText = "▶️ Play"; }
+        return;
+      }
+      stopSpeech();
+      const utterance = new SpeechSynthesisUtterance(text);
+      const pitch = parseFloat(localStorage.getItem('eduvoice_pitch') || '1.0');
+      utterance.pitch = pitch;
+
+      utterance.onend = () => { btn.innerText = "🔊 Read Aloud"; activeSpeechBtn = null; };
+      activeSpeechBtn = btn;
+      btn.innerText = "⏸️ Pause";
+      window.speechSynthesis.speak(utterance);
+    }
+
+    function stopSpeech() {
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      if (activeSpeechBtn) { activeSpeechBtn.innerText = "🔊 Read Aloud"; activeSpeechBtn = null; }
+    }
+
+    function triggerTool(toolType) {
+      const input = document.getElementById('user-input');
+      if (toolType === 'tldr') input.value = "Provide a 1-sentence summary (TL;DR) of your last response.";
+      sendMessage();
+    }
+
+    function saveSettings() {
+      const key = document.getElementById('groq-key-input').value.trim();
+      if (key) localStorage.setItem('groq_api_key', key);
+      localStorage.setItem('eduvoice_gender', document.getElementById('voice-gender').value);
+      localStorage.setItem('eduvoice_pitch', document.getElementById('voice-pitch').value);
+      localStorage.setItem('eduvoice_lang', document.getElementById('voice-lang').value);
+      closeModal('settings-modal');
+      showToast("Settings Saved!");
+    }
+
+    function initSettings() {
+      document.getElementById('groq-key-input').value = localStorage.getItem('groq_api_key') || '';
+      document.getElementById('voice-gender').value = localStorage.getItem('eduvoice_gender') || 'female';
+      document.getElementById('voice-pitch').value = localStorage.getItem('eduvoice_pitch') || '1.0';
+      document.getElementById('voice-lang').value = localStorage.getItem('eduvoice_lang') || 'en-US';
+      const savedTheme = localStorage.getItem('eduvoice_theme') || 'dark';
+      changeTheme(savedTheme);
+      document.getElementById('theme-select').value = savedTheme;
+    }
+
+    function changeTheme(theme) {
+      if (theme === 'light') document.body.classList.add('light-theme');
+      else document.body.classList.remove('light-theme');
+      localStorage.setItem('eduvoice_theme', theme);
+    }
+
+    function openModal(id) { 
+      const el = document.getElementById(id);
+      if (el) el.classList.add('active'); 
+    }
+
+    function closeModal(id) { 
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('active'); 
+    }
+
+    function saveProfile() {
+      const newName = document.getElementById('username-input').value.trim() || 'Student';
+      localStorage.setItem('eduvoice_username', newName);
+      localStorage.removeItem('eduvoice_user_picture');
+      loadProfile();
+      closeModal('account-modal');
+      showToast("Profile Updated!");
+    }
+
+    document.getElementById('user-input').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    });
+
+    function copyMessageText(btn) {
+      const text = btn.closest('.message-content').querySelector('.message-content-inner').innerText;
+      navigator.clipboard.writeText(text);
+      showToast("Copied to clipboard!");
+    }
+  </script>
+</body>
+</html>
